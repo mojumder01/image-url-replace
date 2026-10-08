@@ -1,0 +1,9 @@
+# Sensitive files - never commit these
+credentials.json
+auth_state.json
+export_automation_config.json
+
+# Temp/output files
+downloads/
+*.log
+~$*
