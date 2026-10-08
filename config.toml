@@ -38,7 +38,55 @@ min_files = 2
 # Rows that went to Claude but are missing from Claude's output:
 # false = stop and show them, true = leave them out and continue.
 allow_missing_cleaned_rows = false
+# Automatic cleaning: rows failing a self-check (lost image, empty cell, ...)
+# are not uploaded; they are listed in not_uploaded.xlsx.
+skip_rows_failing_checks = true
 approval_template = 'templates\Product-approval-template.xlsx'
+
+[auto]
+# Fully automatic runs (python catprep.py auto / Run_All.bat / scheduled task).
+watch_minutes = 10              # Schedule_Watch.bat: check Data every N minutes
+daily_time = "09:00"            # Schedule_Daily.bat: run once a day at this time
+max_attempts = 3                # a failing run is retried this many times, then left for you
+headless_when_scheduled = true  # hide the browser in scheduled runs
+
+[otp]
+# Read the login OTP from your email (needs email_address + email_app_password
+# in credentials.json). false = you type the OTP yourself.
+enabled = false
+imap_host = "imap.gmail.com"
+sender = ""                     # e.g. "no-reply@cartup.com" - only emails from this sender
+subject_contains = ""           # e.g. "OTP"
+code_pattern = ""               # empty = digits after "OTP"/"code", else any 4-8 digits
+wait_seconds = 120
+input_selector = ""             # leave empty unless the OTP box is not found
+submit_selector = ""
+
+[notify]
+# Email a short report after every automatic run (same Gmail app password).
+enabled = false
+to = ""                         # empty = send to email_address
+
+[site_upload]
+# Upload the files to seller-admin automatically. Keep false until the page
+# and button names below are confirmed from screenshots of the upload pages.
+enabled = false
+upload_approval = true          # also upload Product-approval.xlsx after the update files
+wait_seconds = 600              # max wait for the site to finish one file
+
+[site_upload.update]            # uploading update_partN.xlsx
+menu = ["Products", "Multi Seller Bulk"]          # menu items to click, in order
+file_input = "input[type=file]"
+submit_button = "button:has-text('Upload')"
+success_text = ["success", "completed"]           # words shown when it worked
+error_text = ["failed", "error"]
+
+[site_upload.approval]          # uploading Product-approval.xlsx
+menu = []
+file_input = "input[type=file]"
+submit_button = "button:has-text('Upload')"
+success_text = ["success", "completed"]
+error_text = ["failed", "error"]
 
 [columns]
 # Columns kept for Claude (Step 3), in this order.

@@ -1,10 +1,11 @@
 """Step 7: build upload-ready files from the official template + the approval file.
 
 1. Takes every row of 'Basic combine.xlsx' (Workings sheet, all columns).
-2. Keeps ONLY products Claude returned, and puts the cleaned content into the
+2. Keeps ONLY products that were cleaned, and puts the cleaned content into the
    HTML columns. Everything else is left out and listed in not_uploaded.xlsx:
      - Needs Review rows (no mapping / too few images)
      - rows Claude did not return (stops unless allow_missing_cleaned_rows)
+     - rows failing a cleaning self-check (automatic cleaning; skip_rows_failing_checks)
 3. Re-orders columns to match the official export template (one of the files
    downloaded in step 2: sheet 'Product Update', header in row 2, data from row 3).
 4. Splits rows evenly into upload files (at least min_files, at most
@@ -142,7 +143,15 @@ def run(ctx):
     r_pid, r_issue = find_col(r_headers, *PID_NAMES), find_col(r_headers, "Issue")
     if r_pid is not None:
         review = {norm_pid(r[r_pid]): (r[r_issue] if r_issue is not None else "Needs Review") for r in r_rows}
-    sent = sent_product_ids(run_.folder("for_claude"))
+    sent = sent_product_ids(run_.file("images"))
+    failed_checks = {}
+    if cfg["upload"].get("skip_rows_failing_checks", True):
+        wb = load_workbook(run_.file("cleaned"), read_only=True)
+        has_sheet = "Check Problems" in wb.sheetnames
+        wb.close()
+        if has_sheet:
+            _, p_rows = read_table(run_.file("cleaned"), sheet="Check Problems")
+            failed_checks = {norm_pid(r[0]): r[1] for r in p_rows}
 
     upload_rows, skipped = [], []
     for row in rows:
@@ -153,6 +162,8 @@ def run(ctx):
             skipped.append((pid, "Not sent to Claude", row))
         elif pid not in cleaned:
             skipped.append((pid, "Missing from Claude output", row))
+        elif pid in failed_checks:
+            skipped.append((pid, f"Cleaning check failed: {failed_checks[pid]}", row))
         else:
             for name, i in html_cols.items():
                 if name in cleaned[pid]:

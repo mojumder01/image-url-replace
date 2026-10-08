@@ -13,14 +13,11 @@ from ..common import (PID_NAMES, StepError, find_col, info, list_xlsx, norm_pid,
                       write_table)
 
 
-def sent_product_ids(for_claude_dir):
-    ids = set()
-    for path in list_xlsx(for_claude_dir):
-        headers, rows = read_table(path)
-        col = find_col(headers, *PID_NAMES)
-        if col is not None:
-            ids.update(p for p in (norm_pid(r[col]) for r in rows) if p)
-    return ids
+def sent_product_ids(images_path):
+    """Product IDs that went on to cleaning: the 'Data' sheet of step 4."""
+    headers, rows = read_table(images_path, sheet="Data")
+    col = find_col(headers, *PID_NAMES)
+    return {p for p in (norm_pid(r[col]) for r in rows) if p} if col is not None else set()
 
 
 def merge_cleaned(files, columns, out_path):
@@ -62,7 +59,7 @@ def run(ctx):
 
     cleaned = [r[0] for r in rows if r[0]]
     duplicates = len(cleaned) - len(set(cleaned))
-    sent = sent_product_ids(run_.folder("for_claude"))
+    sent = sent_product_ids(run_.file("images"))
     missing = sorted(sent - set(cleaned))
     extra = sorted(set(cleaned) - sent)
     info(f"Rows sent to Claude: {len(sent)} | returned: {len(set(cleaned))} | "

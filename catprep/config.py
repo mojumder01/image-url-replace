@@ -22,8 +22,22 @@ DEFAULTS = {
     },
     "upload": {
         "max_rows_per_file": 7500, "min_files": 2,
-        "allow_missing_cleaned_rows": False,
+        "allow_missing_cleaned_rows": False, "skip_rows_failing_checks": True,
         "approval_template": r"templates\Product-approval-template.xlsx",
+    },
+    "otp": {
+        "enabled": False, "imap_host": "imap.gmail.com", "sender": "", "subject_contains": "",
+        "code_pattern": "", "wait_seconds": 120, "input_selector": "", "submit_selector": "",
+    },
+    "auto": {"watch_minutes": 10, "daily_time": "09:00", "max_attempts": 3, "headless_when_scheduled": True},
+    "notify": {"enabled": False, "to": "", "smtp_host": "smtp.gmail.com", "smtp_port": 465},
+    "site_upload": {
+        "enabled": False, "upload_approval": True, "wait_seconds": 600,
+        "update": {"menu": ["Products", "Multi Seller Bulk"], "file_input": "input[type=file]",
+                   "submit_button": "button:has-text('Upload')", "success_text": ["success", "completed"],
+                   "error_text": ["failed", "error"]},
+        "approval": {"menu": [], "file_input": "input[type=file]", "submit_button": "button:has-text('Upload')",
+                     "success_text": ["success", "completed"], "error_text": ["failed", "error"]},
     },
     "columns": {
         "keep": ["Product ID", "Seller Code", "Name (English)", "Highlights(English)",

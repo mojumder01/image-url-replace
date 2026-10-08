@@ -33,7 +33,7 @@ INSTRUCTIONS = """HOW TO CLEAN THESE FILES WITH CLAUDE
 2. Save every cleaned file into this folder:
      {done}
    (any file names are fine; keep the same columns)
-3. When all parts are done, double-click 2_Finish.bat
+3. When all parts are done, double-click manual_claude\2_Finish.bat
    (or run:  python catprep.py finish)
 
 Parts in this folder:

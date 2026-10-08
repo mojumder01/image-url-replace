@@ -127,6 +127,6 @@ def run(ctx):
     out = ctx.run.file("images")
     good, review, stats = merge(ctx.run.file("trim"), ctx.run.file("urls"),
                                 ctx.cfg["columns"]["html"], out)
-    info(f"Ready for Claude: {good} rows | Needs Review: {review} "
+    info(f"Ready for cleaning: {good} rows | Needs Review: {review} "
          f"(no mapping {stats['no_mapping']}, too few images {stats['too_few']}) -> {out}")
     return {"rows_ok": good, "needs_review": review, "tags_replaced": stats["tags_replaced"]}

@@ -249,6 +249,21 @@ class PipelineTest(unittest.TestCase):
         _, left = read_table(self.run_.file("not_uploaded"))
         self.assertEqual([r[0] for r in left], ["103"])
 
+    def test_auto_route_cleans_and_uploads(self):
+        """Automatic route: Python cleaning replaces Claude; no Part files are needed."""
+        self.prepare()
+        self.step("clean")
+        self.step("upload")
+        self.step("submit")  # site upload is off: only a reminder
+        _, appr = read_table(self.run_.file("approval"))
+        self.assertEqual(sorted(norm_pid(r[1]) for r in appr), ["101", "102", "104", "105"])
+        h, cleaned = read_table(self.run_.file("cleaned"))
+        row101 = next(r for r in cleaned if r[0] == "101")
+        self.assertTrue(row101[3].startswith("<ul><li>"))
+        self.assertTrue(row101[5].startswith("<h2>P101</h2>"))
+        self.assertIn(BASE + "k1.webp", row101[5])
+        self.assertFalse(self.run_.status()["steps"]["submit"]["uploaded_to_site"])
+
     def test_dropdowns_extend_past_template_rows(self):
         """Writing more rows than the template has keeps formats and stretches dropdowns."""
         template = os.path.join(self.run_.folder("export"), "downloads", "batch1_export.xlsx")

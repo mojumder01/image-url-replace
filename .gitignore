@@ -16,3 +16,4 @@ __pycache__/
 Data/
 H&D_Processed_Input/
 agent_log.txt
+scheduler.log

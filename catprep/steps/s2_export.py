@@ -6,8 +6,7 @@ seller-admin.cartup.com -> Products -> Multi Seller Bulk Update -> Export Excel 
   - sheet 'Combined': every row
   - sheet 'Workings': only Product IDs that are in the mapping file (active sheet)
 
-Login: credentials.json fills username/password; the OTP is typed by you in the
-browser. The session is saved in auth_state.json so the next run may skip login.
+Login: see catprep/site.py (saved session, credentials.json, OTP from email or typed).
 Batches already downloaded (batchN_*.xlsx) are skipped, so a failed run can
 simply be started again.
 
@@ -15,17 +14,15 @@ Manual mode (--manual-export): download the export files yourself, put them in
 the run's 2_export/downloads folder, press Enter; they are combined the same way.
 """
 
-import json
 import os
 import time
 
 from openpyxl import Workbook, load_workbook
 
-from ..common import (PID_NAMES, StepError, find_col, info, interactive, norm_header,
-                      norm_pid, pick_sheet, warn, write_table)
-
-LOGIN_URL = "https://seller-admin.cartup.com/auth/signin?callbackUrl=%2F"
-APP_HOME = "https://seller-admin.cartup.com/"
+from .. import site
+from ..common import (PID_NAMES, StepError, find_col, info, interactive, norm_header, norm_pid,
+                      pick_sheet, warn, write_table)
+from ..site import click, wait_overlay_clear
 
 
 # ---------------------------------------------------------------------------
@@ -112,123 +109,15 @@ def combine_exports(files, out_path, valid_pids):
 # ---------------------------------------------------------------------------
 # Browser robot (Playwright, PrimeReact UI)
 # ---------------------------------------------------------------------------
-def _resilient_click(locator, page, desc, total_timeout_ms=4000):
-    end = time.time() + total_timeout_ms / 1000.0
-    last_err = None
-    while time.time() < end:
-        try:
-            if locator.count() == 0 or not locator.first.is_visible():
-                page.wait_for_timeout(200)
-                continue
-            for attempt in (lambda: locator.first.click(timeout=600),
-                            lambda: locator.first.click(timeout=600, force=True),
-                            lambda: locator.first.evaluate("el=>el.click()")):
-                try:
-                    attempt()
-                    return True
-                except Exception as e:
-                    last_err = e
-            page.wait_for_timeout(220)
-        except Exception as e:
-            last_err = e
-            page.wait_for_timeout(220)
-    warn(f"Could not click {desc}: {last_err}")
-    return False
-
-
-def _wait_overlay_clear(page, loops=60, sleep_ms=250):
-    overlay = page.locator("div.p-datatable-loading-overlay").first
-    for _ in range(loops):
-        try:
-            if overlay.count() == 0 or not overlay.is_visible():
-                return
-        except Exception:
-            return
-        page.wait_for_timeout(sleep_ms)
-
-
-def _is_logged_in(page):
-    url = (page.url or "").lower()
-    return "seller-admin.cartup.com" in url and "/auth/" not in url
-
-
-def _confirm_logged_in(page):
-    try:
-        page.goto(APP_HOME, wait_until="domcontentloaded", timeout=15000)
-    except Exception:
-        pass
-    page.wait_for_timeout(400)
-    return _is_logged_in(page)
-
-
-def _load_credentials(path):
-    data = {}
-    if os.path.isfile(path):
-        try:
-            with open(path, encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception as e:
-            warn(f"Cannot read {os.path.basename(path)}: {e}")
-    username = str(data.get("username", "")).strip()
-    password = str(data.get("password", "")).strip()
-    if not (username and password) and interactive():
-        import getpass
-        username = input("seller-admin username: ").strip()
-        password = getpass.getpass("seller-admin password (hidden): ").strip()
-    return username, password, str(data.get("display_name", "")).strip()
-
-
-def _login(page, credentials_path):
-    page.goto(APP_HOME, wait_until="domcontentloaded")
-    if _is_logged_in(page):
-        info("Already logged in (saved session).")
-        return
-    page.goto(LOGIN_URL, wait_until="domcontentloaded")
-    username, password, _ = _load_credentials(credentials_path)
-    if username and password:
-        page.fill('input[name="username"]', username)
-        page.fill('input[name="password"]', password)
-        page.click('button:has-text("Sign In")')
-        info("Username/password filled and Sign In clicked.")
-    else:
-        info("No credentials - log in yourself in the browser.")
-    for attempt in range(1, 9):
-        input(f"\n>>> Type the OTP in the browser, then press ENTER here (try {attempt}/8) ")
-        if _confirm_logged_in(page):
-            info("Login confirmed.")
-            return
-        warn("Not logged in yet. Finish the login in the browser, then press Enter again.")
-    raise StepError("Login was not confirmed after 8 tries.")
-
-
-def _display_name(page, credentials_path):
-    """Name shown in Export History 'Downloaded By'."""
-    name = _load_credentials(credentials_path)[2] if os.path.isfile(credentials_path) else ""
-    if name:
-        return name
-    for sel in ("button.p-button.p-component >> nth=-1", "[class*='user'] span",
-                "[class*='profile'] span", "header button span"):
-        try:
-            loc = page.locator(sel).last
-            if loc.count() and loc.is_visible(timeout=800):
-                text = loc.inner_text(timeout=800).strip()
-                if len(text) > 2 and text[0].isalpha() and "\n" not in text:
-                    return text
-        except Exception:
-            continue
-    warn("Could not read your display name - Export History will not be filtered.")
-    return ""
-
-
 def _open_export_page(page):
-    _resilient_click(page.locator("text=Products").first, page, "Products menu")
+    click(page.locator("text=Products").first, page, "Products menu")
     page.wait_for_timeout(400)
-    _resilient_click(page.locator("text=Multi Seller Bulk").first, page, "Multi Seller Bulk Update")
+    click(page.locator("text=Multi Seller Bulk").first, page, "Multi Seller Bulk Update")
     page.wait_for_load_state("domcontentloaded")
     page.wait_for_timeout(500)
     tab = page.locator("text=Export Excel File").first
     if tab.count():
-        _resilient_click(tab, page, "Export Excel File tab", 3000)
+        click(tab, page, "Export Excel File tab", 3000)
         page.wait_for_timeout(300)
 
 
@@ -236,19 +125,19 @@ def _submit_batch(page, codes):
     field = page.get_by_placeholder("Enter Seller Code(s)")
     field.fill("")
     field.fill(",".join(codes))
-    _resilient_click(page.locator("text=All").first, page, "Status: All", 2000)
-    _resilient_click(page.locator("text=Basic Information").first, page, "Edit: Basic Information", 2000)
-    _resilient_click(page.locator("button:has-text('Download')").first, page, "Download (submit) button", 3000)
+    click(page.locator("text=All").first, page, "Status: All", 2000)
+    click(page.locator("text=Basic Information").first, page, "Edit: Basic Information", 2000)
+    click(page.locator("button:has-text('Download')").first, page, "Download (submit) button", 3000)
 
 
-def _filter_history(page, display_name):
-    if not display_name:
+def _filter_history(page, name):
+    if not name:
         return
     field = page.get_by_placeholder("Downloaded By")
     if field.count():
         field.fill("")
-        field.fill(display_name)
-        _resilient_click(page.locator("button:has-text('Search')").first, page, "Search", 2500)
+        field.fill(name)
+        click(page.locator("button:has-text('Search')").first, page, "Search", 2500)
         page.wait_for_timeout(400)
 
 
@@ -259,10 +148,10 @@ def _wait_and_download(page, out_dir, label, poll_s, timeout_s):
     def refresh():
         btn = page.locator("button:has-text('Refresh')").first
         if btn.count():
-            _resilient_click(btn, page, "Refresh", 3000)
+            click(btn, page, "Refresh", 3000)
 
     while time.time() - start < timeout_s:
-        _wait_overlay_clear(page)
+        wait_overlay_clear(page)
         row = page.locator("table tbody tr").first
         text = ""
         if row.count():
@@ -277,7 +166,7 @@ def _wait_and_download(page, out_dir, label, poll_s, timeout_s):
             if link.count():
                 try:
                     with page.expect_download(timeout=120000) as d:
-                        _resilient_click(link, page, "row Download link", 2500)
+                        click(link, page, "row Download link", 2500)
                     target = os.path.join(out_dir, f"{label}_{d.value.suggested_filename or 'export.xlsx'}")
                     d.value.save_as(target)
                     info(f"Downloaded {os.path.basename(target)}")
@@ -291,31 +180,14 @@ def _wait_and_download(page, out_dir, label, poll_s, timeout_s):
 
 
 def download_exports(cfg, codes, downloads_dir):
-    try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        raise StepError("Playwright is not installed. Run:\n"
-                        "    pip install playwright\n    python -m playwright install chromium")
     ex = cfg["export"]
-    credentials = cfg.path(ex["credentials_file"])
-    auth_state = cfg.path(ex["auth_state_file"])
     size = int(ex["batch_size"])
     batches = [codes[i:i + size] for i in range(0, len(codes), size)]
     info(f"{len(codes)} seller codes -> {len(batches)} batches of up to {size}.")
-
     results = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=bool(ex["headless"]), slow_mo=int(ex["slowmo_ms"]))
-        kwargs = {"accept_downloads": True, "viewport": {"width": 1400, "height": 900}}
-        if os.path.isfile(auth_state):
-            kwargs["storage_state"] = auth_state
-        context = browser.new_context(**kwargs)
-        page = context.new_page()
-        _login(page, credentials)
-        context.storage_state(path=auth_state)
-        display_name = _display_name(page, credentials)
+    with site.session(cfg) as page:
+        name = site.display_name(page, cfg)
         _open_export_page(page)
-
         for i, batch in enumerate(batches, start=1):
             label = f"batch{i}"
             done = [f for f in os.listdir(downloads_dir) if f.startswith(label + "_")]
@@ -326,13 +198,12 @@ def download_exports(cfg, codes, downloads_dir):
             info(f"\nBatch {i}/{len(batches)}: {','.join(batch)}")
             _submit_batch(page, batch)
             page.wait_for_timeout(1500)
-            _filter_history(page, display_name)
+            _filter_history(page, name)
             state, path = _wait_and_download(page, downloads_dir, label,
                                              int(ex["poll_seconds"]), int(ex["timeout_seconds"]))
             if state != "completed":
                 warn(f"Batch {i}: export {state}.")
             results.append([i, ",".join(batch), state, os.path.basename(path)])
-        browser.close()
     return results
 
 
@@ -346,7 +217,8 @@ def run(ctx):
     if ctx.options.get("manual_export"):
         info("MANUAL EXPORT: download the seller export files from seller-admin and put them here:")
         info(f"    {downloads}")
-        input("Press ENTER when the files are in the folder ... ")
+        if interactive():
+            input("Press ENTER when the files are in the folder ... ")
     else:
         codes = read_seller_codes(mapping, cfg["mapping"]["seller_sheet"])
         if not codes:
