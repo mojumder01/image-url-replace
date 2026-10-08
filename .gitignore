@@ -7,3 +7,7 @@ export_automation_config.json
 downloads/
 *.log
 ~$*
+
+# Python bytecode cache
+__pycache__/
+*.pyc
