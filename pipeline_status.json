@@ -1,0 +1,61 @@
+{
+  "1": {
+    "label": "Image URL add (Step 1)",
+    "updated_at": "2026-09-29 15:37:00",
+    "state": "done",
+    "input": "e:\\FreeBuff\\Image URL work agent\\Data\\image_links_mapping (28.09.2026) Bakaul.xlsx",
+    "output": "D:\\Image URL change\\September 2026\\28-09-2026\\image_http_url_add.xlsx",
+    "base_url": "https://sl-dev-s3.s3.amazonaws.com/product/"
+  },
+  "2": {
+    "label": "Basic combine.xlsx ready? (Step 2, automated)",
+    "updated_at": "2026-09-29 15:46:05",
+    "state": "done",
+    "output": "D:\\Image URL change\\September 2026\\28-09-2026\\Basic combine.xlsx",
+    "matched_columns": "7/7",
+    "mode": "automated"
+  },
+  "3": {
+    "label": "Trim columns (Step 3)",
+    "updated_at": "2026-09-29 15:46:16",
+    "state": "done",
+    "input": "D:\\Image URL change\\September 2026\\28-09-2026\\Basic combine.xlsx",
+    "output": "D:\\Image URL change\\September 2026\\28-09-2026\\Basic combine H & D.xlsx"
+  },
+  "4": {
+    "label": "Merge images into HTML (Step 4)",
+    "updated_at": "2026-09-29 15:47:15",
+    "state": "done",
+    "input": "D:\\Image URL change\\September 2026\\28-09-2026\\Basic combine H & D.xlsx + D:\\Image URL change\\September 2026\\28-09-2026\\image_http_url_add.xlsx",
+    "output": "D:\\Image URL change\\September 2026\\28-09-2026\\Basic combine H & D_image_replaced.xlsx",
+    "needs_review_rows": 1267
+  },
+  "5": {
+    "label": "Split for Claude (Step 5)",
+    "updated_at": "2026-09-29 15:47:19",
+    "state": "done",
+    "input": "D:\\Image URL change\\September 2026\\28-09-2026\\Basic combine H & D_image_replaced.xlsx",
+    "output": "D:\\Image URL change\\September 2026\\28-09-2026\\Basic combine H & D_image_replaced_split",
+    "parts": 3,
+    "header_rows": 1,
+    "chunk_size": 3500
+  },
+  "base_url": {
+    "label": "Last used Base URL",
+    "updated_at": "2026-09-29 15:36:59",
+    "value": "https://sl-dev-s3.s3.amazonaws.com/product/"
+  },
+  "6": {
+    "label": "Content update + split for bulk update (Step 6)",
+    "updated_at": "2026-09-29 16:06:48",
+    "state": "done",
+    "input": "D:\\Image URL change\\September 2026\\28-09-2026\\Basic combine.xlsx",
+    "cleaned_input": "D:\\Image URL change\\September 2026\\28-09-2026\\Basic combine cleaned.xlsx",
+    "output": "D:\\Image URL change\\September 2026\\28-09-2026\\update",
+    "files": 2,
+    "updated_rows": 10166,
+    "missing_rows": 1267,
+    "template": "D:\\Image URL change\\September 2026\\28-09-2026\\downloads\\batch1_product_basic_info_download_1790674633580.xlsx",
+    "approval_file": "D:\\Image URL change\\September 2026\\28-09-2026\\update\\Product-approval.xlsx"
+  }
+}
