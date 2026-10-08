@@ -1,0 +1,54 @@
+# Catalogue Prep settings. Edit values here; nothing else needs changing.
+# Lines starting with # are notes.
+
+# Every run creates one folder here, e.g.
+#   D:\Image URL change\September 2026_28-09-2026_15-37\
+output_root = 'D:\Image URL change'
+
+# Added in front of every image key in the mapping file.
+base_url = "https://sl-dev-s3.s3.amazonaws.com/product/"
+
+[mapping]
+# Where the new mapping file is put. The newest .xlsx whose name contains
+# "image", "link" and "mapping" (or "bakaul") is used.
+folder = "Data"
+data_sheet = "Data Mapping"     # Product ID + image1, image2, ...
+seller_sheet = "Seller Info"    # Seller Code column
+
+[export]
+# Browser robot for seller-admin.cartup.com (Step 2).
+batch_size = 4            # seller codes per export request
+poll_seconds = 10         # how often to check Export History
+timeout_seconds = 300     # max wait for one batch
+headless = false          # true = hide the browser (OTP still needed)
+slowmo_ms = 150
+credentials_file = "credentials.json"
+auth_state_file = "auth_state.json"
+
+[claude]
+rows_per_part = 3500
+prompt_file = 'templates\H&D_improved_prompt.md'
+# If the run's 6_claude_done folder is empty, cleaned files are taken
+# from this project folder instead.
+fallback_done_folder = "H&D_Processed_Input"
+
+[upload]
+max_rows_per_file = 7500
+min_files = 2
+# Rows that went to Claude but are missing from Claude's output:
+# false = stop and show them, true = leave them out and continue.
+allow_missing_cleaned_rows = false
+approval_template = 'templates\Product-approval-template.xlsx'
+
+[columns]
+# Columns kept for Claude (Step 3), in this order.
+keep = [
+  "Product ID", "Seller Code", "Name (English)",
+  "Highlights(English)", "Highlights(Bengali)",
+  "Description (English)", "Description (Bengali)",
+]
+# HTML columns where images are replaced and cleaned content is written back.
+html = [
+  "Highlights(English)", "Highlights(Bengali)",
+  "Description (English)", "Description (Bengali)",
+]

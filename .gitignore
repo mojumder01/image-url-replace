@@ -11,3 +11,8 @@ downloads/
 # Python bytecode cache
 __pycache__/
 *.pyc
+
+# Input data and Claude output (business data, not code)
+Data/
+H&D_Processed_Input/
+agent_log.txt
