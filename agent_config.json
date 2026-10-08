@@ -1,0 +1,12 @@
+{
+  "auto_mode": {
+    "base_url": "https://sl-dev-s3.s3.amazonaws.com/product/",
+
+    "_mapping_file_note": "mapping_file hardcode kora nai - agent nijer theke Data/ folder scan kore khuje nebe",
+    "_mapping_file_rule": "naam e 'image' + 'link' + 'mapping' (case-insensitive) - tintoi thakte hobe, newest file auto-selected",
+
+    "overwrite_existing": true,
+    "header_rows": 1,
+    "chunk_size": 3500
+  }
+}
